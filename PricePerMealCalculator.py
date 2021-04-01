@@ -5,8 +5,6 @@ from fractions import Fraction
 import Credentials
 import helperFunctions
 
-# TODOs
-# - exact value --> what to actually order
 
 # Get the name of the input and output sheet
 nutritionFactSheet_name = input("Enter the input sheet name for recipe nutrition facts: ")
@@ -24,73 +22,46 @@ output_range = output_sheet + "!A1"
 
 helperFunctions.add_sheets(Credentials.outputListSheet_ID, output_sheet) #added output
 
-nutritionRange = nutritionFactSheet_name + "!A2:C6"
-
 nurition_facts = Credentials.sheet.values().get(spreadsheetId=Credentials.nutritionFactSheet_ID,
-                                              range=nutritionRange).execute() #FIX
+                                              range=nutritionFactSheet_range).execute() #FIX
 values_nutrition_facts = nurition_facts.get('values', [])
 
 unit_prices = Credentials.sheet.values().get(spreadsheetId=Credentials.unitPriceSheet_ID,
-                                              range="Sheet1!A2:H11").execute()
+                                              range=unitPriceSheet_range).execute()
+# range="Sheet1!A2:H11
 values_unit_prices = unit_prices.get('values', [])
 
-# print(values_nutrition_facts)
-# print("\n")
-# print(values_unit_prices)
-
-# ingredient_list = Credentials.sheet.values().get(spreadsheetId=Credentials.input_unit_prices_ID,
-#                                                  range="sheet1!A1:Z15").execute()
-
-# Step 3: Write the header for columns of output file
-
 headerList = ["Meal Name", "Total Price"]
-otherHeaderList = ["Ingredient", "Price", "Supplier"]
+otherHeaderList = ["Ingredient", "Tag", "Price", "Supplier"]
 # Final results array
 total_results_output = []
 total_results_output.append(headerList)
 
-total_results_output.append([""]) # meal row, fill in last
+total_results_output.append([]) # meal row, fill in last
 total_results_output.append(otherHeaderList) #next header
-
-# values_unit_prices = [[tomato	|   Jayce’s tomatoes	| 200	yes      |    50 |	grams   |  	7], ...]
-# values_nutrition_facts = [Potato - boile   2	150 g]
-
-# #NUTIRIONFACTS
-# ingredient, amount needed
-#
-# match ingredient == ingredient
-# (amount needed / per amount) * price
-
-# dictionary for {ingrient, amount needed} in recipe
-                        # Price (¥)	Amount	Units
-unitPriceDict = {values_unit_prices[i][0] : [values_unit_prices[i][5], values_unit_prices[i][6], values_unit_prices[i][7]] for i in range(len(values_unit_prices))}
-#ingredient : [price, amount, units]
-#mushrooms : [300, 100,	g]
-
-# print("\n")
-# print(unitPriceDict)
-
+                        
+unitPriceDict = {(values_unit_prices[i][0], values_unit_prices[i][1]) : [values_unit_prices[i][2], values_unit_prices[i][6], values_unit_prices[i][7], values_unit_prices[i][8]] for i in range(len(values_unit_prices))}
 totalPrice = 0
 
-for i in range(len(values_nutrition_facts)):
-    ingredient = values_nutrition_facts[i][0] #'potato - boiled'
-    if (ingredient == ""):
+for i in range(1, len(values_nutrition_facts)):
+    actualIngredient = values_nutrition_facts[i][0]
+    tag = values_nutrition_facts[i][1]
+    tup = (actualIngredient, tag) #(ingredient, tag)
+    if (actualIngredient == ""): # just in case
         break
     else:
-        splitIngredient = ingredient.split(" ", 1)
-        actualIngredient = splitIngredient[0] #potato
-        print(actualIngredient)
-        print("\n")
-        unit_price = unitPriceDict.get(actualIngredient)[0] #594
-        unit_amount = unitPriceDict.get(actualIngredient)[1]
-        # units = unitPriceDict.get(actualIngredient)[2]
-        supplier = values_unit_prices[i][1]
-        actual_amount = values_nutrition_facts[i][2]
+        supplier = unitPriceDict.get(tup)[0]
+        unit_price = unitPriceDict.get(tup)[1]
+        unit_amount = unitPriceDict.get(tup)[2]
+        units = unitPriceDict.get(tup)[3]
+        
+        actual_amount = values_nutrition_facts[i][4]
         splitString = actual_amount.split(" ", 1) #["150", "g"] *1 means 1 line
         final_amount = splitString[0]
+        unit = splitString[1]
         price = (int(final_amount) / int(unit_amount)) * int(unit_price)
         totalPrice += price
-        total_results_output.append([actualIngredient, price, supplier])
+        total_results_output.append([actualIngredient, tag, price, supplier])
 
 total_results_output[1].extend([nutritionFactSheet_name, totalPrice])
 

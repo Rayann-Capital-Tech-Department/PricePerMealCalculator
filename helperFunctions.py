@@ -24,14 +24,18 @@ def getRange(IDFiles, sheetIndex):
                                                                                'sheetId,'
                                                                                'title))').execute()
     sheetName = res['sheets'][sheetIndex]['properties']['title']
+    
     lastRow = len(res['sheets'][sheetIndex]['data'][0]['rowData'])
+    
     lastColumn = max([len(e['values']) for e in res['sheets'][sheetIndex]['data'][0]['rowData'] if e])
+    
 
     string = ""
     while lastColumn > 0:
         lastColumn, remainder = divmod(lastColumn - 1, 26)
         string = chr(65 + remainder) + string
-    return "!A1:" + string + str(lastRow)
+    range = "!A1:" + string + str(lastRow)
+    return range
 
 
 # Store all the input information
