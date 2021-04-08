@@ -7,18 +7,14 @@ import helperFunctions
 sheet_metadata = Credentials.service.spreadsheets().get(spreadsheetId=Credentials.nutritionFactSheet_ID).execute()
 sheets = sheet_metadata.get('sheets', '')
 
-# Get the name of the input and output sheet
-# nutritionFactSheet_name = input("Enter the input sheet name for recipe nutrition facts: ")
-# unitPriceSheet_name = input("Enter the input sheet name for unit prices: ")
-# output_sheet = input("Enter the price per meal output sheet name: ")
-
-# for sheet in nutritionfact_sheets:
-#     take unit price data 
-#     outputsheet.add(price/meal)
+unitprice_metadata = Credentials.service.spreadsheets().get(spreadsheetId=Credentials.unitPriceSheet_ID).execute()
+unitsheets = unitprice_metadata.get('sheets', '')
 
 for sheet in sheets:
     nutritionFactSheet_name = sheet["properties"]["title"]
     output_sheet = sheet["properties"]["title"]
+    
+    unitPriceSheet_name = unitsheets[0]["properties"]["title"]
     
     nutritionFactSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, nutritionFactSheet_name)
     unitPriceSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, unitPriceSheet_name)
@@ -38,9 +34,6 @@ for sheet in sheets:
     unit_prices = Credentials.sheet.values().get(spreadsheetId=Credentials.unitPriceSheet_ID,
                                                   range=unitPriceSheet_range).execute()
                                                   
-                                                  
-                                                  
-    # range="Sheet1!A2:H11
     values_unit_prices = unit_prices.get('values', [])
 
     headerList = ["Meal Name", "Total Price"]
