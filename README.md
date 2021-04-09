@@ -2,7 +2,8 @@
 #### Calculates price per meal for FitBento. 
 ### Run the program
 for all recipe files, run: `python PricePerMealCalculator.py`
-
+***
+### Inputs and Outputs
 (Italicized == columns used for calculation)
 #### Sample Input① : Recipe Nutrition Facts  
 this file has multiple sheets; below is an example sheet titled "An Amazing Recipe"
