@@ -10,11 +10,13 @@ creds = service_account.Credentials.from_service_account_file(
 
 # If modifying these scopes, delete the file token.pickle.
 
-# Step 1: The ID of the spreadsheets
+# Get sheet keys. Copy/paste from between the last two slashes "/" in the google sheet URL:
+
+# unit price sheet
 unitPriceSheet_ID = '1qZgYLUQUAhqbjoYJ9wZZRib8DLfIaGz1gG_o6tSKPWw'
-#Tuan's output:
+# nutirion facts sheet
 nutritionFactSheet_ID = '1g10_SjiUuvz9am2ADL7yzOZfREGAtP-Jy8NumTt4RzI'
-#my output:
+# output sheet
 outputListSheet_ID = '1d5SOICeHqjFfoL1xEf1bVjOoOgi2ESJOXxhgRjye-u8'
 
 service = build('sheets', 'v4', credentials=creds)

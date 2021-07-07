@@ -4,73 +4,76 @@ from fractions import Fraction
 import Credentials
 import helperFunctions
 
+#nutirion fact sheet data array
 sheet_metadata = Credentials.service.spreadsheets().get(spreadsheetId=Credentials.nutritionFactSheet_ID).execute()
 sheets = sheet_metadata.get('sheets', '')
 
+#unit price fact sheet data array
 unitprice_metadata = Credentials.service.spreadsheets().get(spreadsheetId=Credentials.unitPriceSheet_ID).execute()
 unitsheets = unitprice_metadata.get('sheets', '')
 
-for sheet in sheets:
-    nutritionFactSheet_name = sheet["properties"]["title"]
-    output_sheet = sheet["properties"]["title"]
-    
-    unitPriceSheet_name = unitsheets[0]["properties"]["title"]
-    
-    nutritionFactSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, nutritionFactSheet_name)
-    unitPriceSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, unitPriceSheet_name)
+"""
+for each recipe in the nutrition fact spreadsheet, it will update
+all existing price per meal sheets and add new ones if they don't exist.
+"""
+def updateAll():
+    for sheet in sheets:
+        nutritionFactSheet_name = sheet["properties"]["title"]
+        unitPriceSheet_name = unitsheets[0]["properties"]["title"]
+        output_sheet = nutritionFactSheet_name
+        nutritionFactSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, nutritionFactSheet_name)
+        unitPriceSheet_index = helperFunctions.getSheetIndex(Credentials.nutritionFactSheet_ID, unitPriceSheet_name)
 
-    nutritionFactSheet_range = nutritionFactSheet_name + helperFunctions.getRange(Credentials.nutritionFactSheet_ID, nutritionFactSheet_index)
-    unitPriceSheet_range = unitPriceSheet_name + helperFunctions.getRange(Credentials.unitPriceSheet_ID, unitPriceSheet_index)
-    output_range = output_sheet + "!A1"
+        nutritionFactSheet_range = nutritionFactSheet_name + helperFunctions.getRange(Credentials.nutritionFactSheet_ID, nutritionFactSheet_index)
+        unitPriceSheet_range = unitPriceSheet_name + helperFunctions.getRange(Credentials.unitPriceSheet_ID, unitPriceSheet_index)
+        output_range = nutritionFactSheet_name + "!A1"
 
-    # Add new worksheet into spreadSheet with ID: outputListID and title: sheet_name
+        # Add new worksheet into spreadSheet with ID: outputListID and title: sheet_name
+        helperFunctions.add_sheets(Credentials.outputListSheet_ID, output_sheet) #added output
 
-    helperFunctions.add_sheets(Credentials.outputListSheet_ID, output_sheet) #added output
+        # get arrays of nutrition facts and unit price sheet values
+        nutrition_facts = Credentials.sheet.values().get(spreadsheetId=Credentials.nutritionFactSheet_ID, range=nutritionFactSheet_range).execute().get('values', [])
+        unit_prices = Credentials.sheet.values().get(spreadsheetId=Credentials.unitPriceSheet_ID, range=unitPriceSheet_range).execute().get('values', [])
+        print(unit_prices)
 
-    nurition_facts = Credentials.sheet.values().get(spreadsheetId=Credentials.nutritionFactSheet_ID,
-                                                  range=nutritionFactSheet_range).execute() #FIX
-    values_nutrition_facts = nurition_facts.get('values', [])
+        header = ["Meal Name", "Total Price"]
+        subheader = ["Ingredient", "Tag", "Price", "Supplier"]
 
-    unit_prices = Credentials.sheet.values().get(spreadsheetId=Credentials.unitPriceSheet_ID,
-                                                  range=unitPriceSheet_range).execute()
-                                                  
-    values_unit_prices = unit_prices.get('values', [])
+        # prep final results array
+        results = []
+        results.append(header)
+        results.append([]) # empty row, fill in later
+        results.append(subheader) # next header
 
-    headerList = ["Meal Name", "Total Price"]
-    otherHeaderList = ["Ingredient", "Tag", "Price", "Supplier"]
-    # Final results array
-    total_results_output = []
-    total_results_output.append(headerList)
+        # build unit price dictionary
+        # (pork, chuckeye) : [costco, 10, 100, g]
+                            # supplier, price in yen, amount, unit
+        unit_price_dict = {(unit_prices[i][0], unit_prices[i][1]) : [unit_prices[i][2], unit_prices[i][6], unit_prices[i][7], unit_prices[i][8]] for i in range(len(unit_prices))}
+        total_price = 0
 
-    total_results_output.append([]) # meal row, fill in last
-    total_results_output.append(otherHeaderList) #next header
-                            
-    unitPriceDict = {(values_unit_prices[i][0], values_unit_prices[i][1]) : [values_unit_prices[i][2], values_unit_prices[i][6], values_unit_prices[i][7], values_unit_prices[i][8]] for i in range(len(values_unit_prices))}
-    totalPrice = 0
+        for i in range(1, len(nutrition_facts)):
+            ingredient = nutrition_facts[i][0] # e.g. "pork"
+            tag = nutrition_facts[i][1] # e.g. "chuckeye"
+            tup = (ingredient, tag) # (ingredient, tag)
+            if (ingredient == ""):
+                break
+            else:
+                supplier = unit_price_dict.get(tup)[0]
+                price = unit_price_dict.get(tup)[1]
+                amount = unit_price_dict.get(tup)[2]
+                units = unit_price_dict.get(tup)[3]
+                
+                actual_amount = nutrition_facts[i][4]
+                final_amount, unit = actual_amount.split(" ", 1) #["150", "g"] from "150 g"
+                price = (int(final_amount) / int(amount)) * int(price)
+                total_price += price
+                results.append([ingredient, tag, price, supplier])
 
-    for i in range(1, len(values_nutrition_facts)):
-        actualIngredient = values_nutrition_facts[i][0]
-        tag = values_nutrition_facts[i][1]
-        tup = (actualIngredient, tag) #(ingredient, tag)
-        if (actualIngredient == ""): # just in case
-            break
-        else:
-            supplier = unitPriceDict.get(tup)[0]
-            unit_price = unitPriceDict.get(tup)[1]
-            unit_amount = unitPriceDict.get(tup)[2]
-            units = unitPriceDict.get(tup)[3]
-            
-            actual_amount = values_nutrition_facts[i][4]
-            splitString = actual_amount.split(" ", 1) #["150", "g"] *1 means 1 line
-            final_amount = splitString[0]
-            unit = splitString[1]
-            price = (int(final_amount) / int(unit_amount)) * int(unit_price)
-            totalPrice += price
-            total_results_output.append([actualIngredient, tag, price, supplier])
+        results[1].extend([nutritionFactSheet_name, total_price])
 
-    total_results_output[1].extend([nutritionFactSheet_name, totalPrice])
+        # write out the 2D array into the google spreadsheet
+        request_1 = Credentials.sheet.values().update(spreadsheetId=Credentials.outputListSheet_ID, range=output_range,
+                                                    valueInputOption="USER_ENTERED",
+                                                    body={"values": results}).execute()
 
-    # write out the 2D array into the google spreadsheet
-    request_1 = Credentials.sheet.values().update(spreadsheetId=Credentials.outputListSheet_ID, range=output_range,
-                                                  valueInputOption="USER_ENTERED",
-                                                  body={"values": total_results_output}).execute()
+updateAll()
