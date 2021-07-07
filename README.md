@@ -1,10 +1,10 @@
 # PricePerMealCalculator
 
-#### Calculates price per meal for FitBento.
+#### Calculates price per meal for FitBento. For all nutrition facts sheets, it will add a new price per meal sheet as long as it doesn't exist yet.
 
 ### Run the program
 
-in your terminal, run: `python PricePerMealCalculator.py`
+in your terminal, run `python PricePerMealCalculator.py`
 
 ---
 
